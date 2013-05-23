@@ -1,0 +1,7 @@
+## Interface: 53000
+## Title: HowMuchMitigation
+## Notes: Keeps track of the various amounts of active mitigation for tanks
+## Version: 1.0
+
+HowMuchMitigation.lua
+HowMuchMitigation.xml
