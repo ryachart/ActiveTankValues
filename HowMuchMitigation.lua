@@ -3,6 +3,35 @@ local HowMuchMitigation = {};
 local class_spell_table = { 
 			WARRIOR = "Shield Barrier", 
 			DRUID = "Frenzied Regeneration"};
+			
+local mitigation_value_lookup = {
+			WARRIOR = function()
+				local ap = UnitAttackPower("player");
+				local rage = min(60,UnitPower("player"));
+				local str, effectiveStr, posBuffStr, negBuffStr = UnitStat("player", 1) --1 is str
+				local sta, effectiveSta, posBuffSta, negBuffSta = UnitStat("player", 3) --3 is stamina
+				if (rage < 20) then
+					return 0;
+				end
+				local barrier_value = max(2*(ap - effectiveStr*2), sta*2.5) * rage/60;
+				return math.floor(barrier_value);
+			end,
+			DRUID = function()
+				local form = GetShapeshiftFormID();
+				if (form ~= BEAR_FORM) then
+					return 0;
+				end
+				local ap = UnitAttackPower("player");
+				local rage = min(60,UnitPower("player"));
+				local agi, effectiveAgi, posBuffAgi, negBuffAgi = UnitStat("player", 2) --2 is agi
+				local sta, effectiveSta, posBuffSta, negBuffSta = UnitStat("player", 3) --3 is stamina
+				if (rage == 0) then
+					return 0;
+				end
+				local regen_value = max(2*(ap - effectiveAgi*2), sta*2.5) * rage/60;
+				return math.floor(regen_value);
+			end,
+};
 
 function HowMuchMitigation_OnLoad(self)
 	SLASH_HOWMUCHMITIGATION1 = "/hmm";
@@ -21,8 +50,13 @@ function HowMuchMitigation_OnLoad(self)
 end
 
 function HowMuchMitigation:COMBAT_LOG_EVENT_UNFILTERED(timestamp, event, hideCaster, sourceGUID, sourceName, sourceFlags, sourceFlags2, destGUID, destName, destFlags, destFlags2, ...)
-	local resultValue = HowMuchMitigation:Shield_Barrier_Value()
-	HowMuchMitigation_MainText:SetText(resultValue);
+	local class, classFileName = UnitClass("player");
+	local resultValue = mitigation_value_lookup[classFileName]();
+	if (resultValue == 0) then
+		HowMuchMitigation_MainText:SetText();
+	else 
+		HowMuchMitigation_MainText:SetText(resultValue);
+	end
 	if (resultValue > 0) then
 		HowMuchMitigation_MainButton1:Show();
 	else
@@ -90,16 +124,4 @@ function HowMuchMitigation:SlashCmd(message, editBox)
 		end
 		HowMuchMitigation:Check_Visibility();
 	end
-end
-
-function HowMuchMitigation:Shield_Barrier_Value()
-	local ap = UnitAttackPower("player");
-	local rage = min(60,UnitPower("player"));
-	local str, effectiveStr, posBuffStr, negBuffStr = UnitStat("player", 1) --1 is str
-	local sta, effectiveSta, posBuffSta, negBuffSta = UnitStat("player", 3) --3 is stamina
-	if (rage < 20) then
-		return 0;
-	end
-	local barrier_value = max(2*(ap - effectiveStr*2), sta*2.5) * rage/60;
-	return math.floor(barrier_value);
 end
