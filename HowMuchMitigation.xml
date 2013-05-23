@@ -15,19 +15,44 @@
 		</Anchors>
 		<Layers>
 			<Layer level="BACKGROUND">
-				<Texture name="$parent_Background" alphamode="BLEND" setAllPoints="true">
-					<Color r="0" g="0" b="0" a="1"/>
+				<Texture name="$parent_Background" alphamode="BLEND">
+					<Color r="0" g="0" b="0" a=".5"/>
 				</Texture>
 				<FontString name="$parentText" inherits="GameFontNormalLarge">
 					<Size>
-						<AbsDimension x="60" y="40"/>
+						<AbsDimension x="100" y="40"/>
 					</Size>
 					<Anchors>
-						<Anchor point="RIGHT"/>
+						<Anchor point="LEFT"/>
 					</Anchors>
 				</FontString>
 			</Layer>
 		</Layers>
+		<Frames>
+			<Button name="$parentButton1" hidden="false" enabled="false">
+				<Size>
+					<AbsDimension x="40" y="40"/>
+				</Size>
+				<Anchors>
+					<Anchor point="RIGHT"/>
+				</Anchors>
+				<Frames>
+					<Cooldown name="$parentCooldown" inherits="CooldownFrameTemplate">
+						<Size x="36" y="36"/>
+						<Anchors>
+							<Anchor point="CENTER">
+								<Offset>
+									<AbsDimension x="0" y="-1"/>
+								</Offset>
+							</Anchor>
+						</Anchors> 
+					</Cooldown>
+				</Frames>
+				<Attributes>
+					<Attribute name="type" value="spell"/>
+				</Attributes>
+			</Button>
+		</Frames>
 		<Scripts>
 			<OnLoad function="HowMuchMitigation_OnLoad"/>
 			<OnDragStart>self:StartMoving()</OnDragStart>
