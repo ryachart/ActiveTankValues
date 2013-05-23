@@ -1,8 +1,10 @@
 local HowMuchMitigation = {};
 
 local class_spell_table = { 
-			WARRIOR = "Shield Barrier", 
-			DRUID = "Frenzied Regeneration"};
+			WARRIOR = "112048", --Shield Barrier  
+			DRUID = "22842", --Frenzied Regenration
+			PALADIN = "85673" --Word of Glory
+};
 			
 local mitigation_value_lookup = {
 			WARRIOR = function()
@@ -31,6 +33,21 @@ local mitigation_value_lookup = {
 				local regen_value = max(2*(ap - effectiveAgi*2), sta*2.5) * rage/60;
 				return math.floor(regen_value);
 			end,
+			PALADIN = function()
+				local holyPower = min(3,UnitPower("player", SPELL_POWER_HOLY_POWER));
+				local sp = GetSpellBonusHealing();
+				local baseHealing = 5054; --Average Base Healing
+				local name, rank, icon, count, dispelType, 
+				duration, expires, caster, isStealable, 
+				shouldConsolidate, spellID, canApplyAura, 
+				isBossDebuff, value1, value2, value3 = UnitBuff("player", "Bastion of Glory");
+				local bastionOfGloryModifier = 1.0;
+				if (value2) then
+					bastionOfGloryModifier = value2/100.0 + 1;
+				end
+				
+				return math.floor(bastionOfGloryModifier*holyPower*(baseHealing+(.49*sp)));
+			end
 };
 
 function HowMuchMitigation_OnLoad(self)
@@ -38,7 +55,6 @@ function HowMuchMitigation_OnLoad(self)
 	SlashCmdList["HOWMUCHMITIGATION"] = function(message, editbox) HowMuchMitigation:SlashCmd(message, editbox) end;
 	self:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED");
 	self:RegisterEvent("PLAYER_ENTERING_WORLD");
-	self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
 	self:RegisterEvent("PLAYER_REGEN_DISABLED");
 	self:RegisterEvent("PLAYER_REGEN_ENABLED");
 	self:SetScript("OnEvent",function(self, event, ...)HowMuchMitigation[event](self, ...)end);
@@ -84,28 +100,36 @@ function HowMuchMitigation:PLAYER_ENTERING_WORLD()
 	else
 		self:RegisterForDrag("LeftButton");
 	end
-	local appropriateSpellTexture = GetSpellTexture(HowMuchMitigation:Appropriate_Spell());
-	HowMuchMitigation_MainButton1:SetNormalTexture(appropriateSpellTexture);
 end
 
 function HowMuchMitigation:Check_Visibility()
 	local inCombat = UnitAffectingCombat("player");
 	local unlocked = not HowMuchMitigation_Settings.IsLocked;
-	if ( HowMuchMitigation:Appropriate_Spell() and (inCombat or unlocked)) then
+	local app_spell = HowMuchMitigation:Appropriate_Spell()
+	if (app_spell and (inCombat or unlocked)) then
 		HowMuchMitigation_Main:Show();
+		HowMuchMitigation_Main:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
+		local appropriateSpellTexture = GetSpellTexture(app_spell);
+		HowMuchMitigation_MainButton1:SetNormalTexture(appropriateSpellTexture);
 	else
 		HowMuchMitigation_Main:Hide();
+		if (HowMuchMitigation_Main:IsEventRegistered("COMBAT_LOG_EVENT_UNFILTERED")) then
+			HowMuchMitigation_Main:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
+		end
 	end
 end
 
 function HowMuchMitigation:Appropriate_Spell()
 	local class, classFileName = UnitClass("player");
-	local spellName = class_spell_table[classFileName];
-	local _, spellId = GetSpellBookItemInfo(spellName);
-	if (spellId) then
-		return spellName;
-	else 
-		return 0;
+	local spellId = class_spell_table[classFileName];
+	if spellId then
+		local spellName = GetSpellInfo(spellId);
+		local skillType = GetSpellBookItemInfo(spellName);
+		if (skillType == "SPELL") then
+			return spellName;
+		else
+			return false;
+		end
 	end
 end
 
