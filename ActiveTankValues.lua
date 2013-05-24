@@ -1,8 +1,8 @@
-local HowMuchMitigation = {};
+local ActiveTankValues = {};
 
 local class_spell_table = { 
 			WARRIOR = "112048", --Shield Barrier  
-			DRUID = "22842", --Frenzied Regenration
+			DRUID = "22842", --Frenzied Regeneration
 			PALADIN = "85673" --Word of Glory
 };
 			
@@ -50,76 +50,128 @@ local mitigation_value_lookup = {
 			end
 };
 
-function HowMuchMitigation_OnLoad(self)
-	SLASH_HOWMUCHMITIGATION1 = "/hmm";
-	SlashCmdList["HOWMUCHMITIGATION"] = function(message, editbox) HowMuchMitigation:SlashCmd(message, editbox) end;
+function ActiveTankValues_OnLoad(self)
+	SLASH_ActiveTankValues1 = "/atv";
+	SlashCmdList["ActiveTankValues"] = function(message, editbox) ActiveTankValues:SlashCmd(message, editbox) end;
 	self:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED");
 	self:RegisterEvent("PLAYER_ENTERING_WORLD");
 	self:RegisterEvent("PLAYER_REGEN_DISABLED");
 	self:RegisterEvent("PLAYER_REGEN_ENABLED");
-	self:SetScript("OnEvent",function(self, event, ...)HowMuchMitigation[event](self, ...)end);
-	HowMuchMitigation_MainText:SetText("0");
-	if ( HowMuchMitigation_Settings == nil ) then
-		HowMuchMitigation_Settings = { };
-		HowMuchMitigation_Settings.IsLocked = false;
+	self:SetScript("OnEvent",function(self, event, ...)ActiveTankValues[event](self, ...)end);
+	ActiveTankValues_MainText:SetText("0");
+	if ( ActiveTankValues_Settings == nil ) then
+		ActiveTankValues_Settings = { };
+		ActiveTankValues_Settings.IsLocked = false;
+	end
+	
+	local class, classFileName = UnitClass("player");
+	if (classFileName == "WARRIOR") then
+		ActiveTankValues_MainStatusBar:SetMinMaxValues(0.0, 1.0);
+		ActiveTankValues_MainStatusBar:SetStatusBarColor(0.0,1.0,0.0,1.0);
+		ActiveTankValues_MainStatusBar:SetPoint("BOTTOM", self, "CENTER", 0, -20)
+		ActiveTankValues_MainStatusBar:SetWidth(100)
+		ActiveTankValues_MainStatusBar:SetHeight(10)
+		ActiveTankValues_MainStatusBar:SetStatusBarTexture("Interface\\TARGETINGFRAME\\UI-StatusBar")
+		ActiveTankValues_MainStatusBar:GetStatusBarTexture():SetHorizTile(false)
+		ActiveTankValues_MainStatusBar:GetStatusBarTexture():SetVertTile(false)
+		ActiveTankValues_MainStatusBar:SetStatusBarColor(0, 0.65, 0)
+		
+		ActiveTankValues_MainStatusBar.bg = ActiveTankValues_MainStatusBar:CreateTexture(nil, "BACKGROUND")
+		ActiveTankValues_MainStatusBar.bg:SetTexture("Interface\\TARGETINGFRAME\\UI-StatusBar")
+		ActiveTankValues_MainStatusBar.bg:SetAllPoints(true)
+		ActiveTankValues_MainStatusBar.bg:SetVertexColor(0, 0.35, 0)
+		ActiveTankValues_MainStatusBar:SetScript("OnUpdate", function(self, elapsed) 
+			local name, rank, icon, count, dispelType, 
+					duration, expires, caster, isStealable, 
+					shouldConsolidate, spellID, canApplyAura, 
+					isBossDebuff, value1, value2, value3 = UnitBuff("player", "Shield Barrier");
+					if (expires and duration) then
+						local remainingBarrierPercentage = abs((GetTime() - expires)/duration);
+						self:SetValue(remainingBarrierPercentage);
+					end
+			end
+		);
 	end
 end
 
-function HowMuchMitigation:COMBAT_LOG_EVENT_UNFILTERED(timestamp, event, hideCaster, sourceGUID, sourceName, sourceFlags, sourceFlags2, destGUID, destName, destFlags, destFlags2, ...)
+function ActiveTankValues:COMBAT_LOG_EVENT_UNFILTERED(timestamp, event, hideCaster, sourceGUID, sourceName, sourceFlags, sourceFlags2, destGUID, destName, destFlags, destFlags2, ...)
 	local class, classFileName = UnitClass("player");
 	local resultValue = mitigation_value_lookup[classFileName]();
-	if (resultValue == 0) then
-		HowMuchMitigation_MainText:SetText();
-	else 
-		HowMuchMitigation_MainText:SetText(resultValue);
-	end
-	if (resultValue > 0) then
-		HowMuchMitigation_MainButton1:Show();
-	else
-		HowMuchMitigation_MainButton1:Hide();
-	end
-end
-
-function HowMuchMitigation:PLAYER_REGEN_DISABLED()
-	HowMuchMitigation:Check_Visibility();
-end
-
-function HowMuchMitigation:PLAYER_REGEN_ENABLED()
-	HowMuchMitigation:Check_Visibility();
-end
-
-function HowMuchMitigation:ACTIVE_TALENT_GROUP_CHANGED()
-	HowMuchMitigation:Check_Visibility();
-end
-
-function HowMuchMitigation:PLAYER_ENTERING_WORLD()
-	HowMuchMitigation:Check_Visibility();
+	local isAbsorbing = false;
 	
-	if (HowMuchMitigation_Settings.IsLocked) then
+	if classFileName == "WARRIOR" then
+		local name, rank, icon, count, dispelType, 
+				duration, expires, caster, isStealable, 
+				shouldConsolidate, spellID, canApplyAura, 
+				isBossDebuff, value1, value2, value3 = UnitBuff("player", "Shield Barrier");
+				if (value2 and value2 > 0) then
+					ActiveTankValues_MainText:SetText(value2);
+					ActiveTankValues_MainText:SetTextColor(0,1,0,1);
+					isAbsorbing = true;
+					ActiveTankValues_MainStatusBar:Show();
+					--print("StatusBarValue: ", ActiveTankValues_MainStatusBar:GetValue());
+				end
+	end
+	
+	
+	if not isAbsorbing then
+		ActiveTankValues_MainText:SetTextColor(1,1,1,1);
+		ActiveTankValues_MainStatusBar:SetValue(0);
+		ActiveTankValues_MainStatusBar:Hide();
+		if (resultValue == 0) then
+			ActiveTankValues_MainText:SetText();
+		else 
+			ActiveTankValues_MainText:SetText(resultValue);
+		end
+	end
+	
+	if (resultValue > 0 or isAbsorbing) then
+			ActiveTankValues_MainButton1:Show();
+		else
+			ActiveTankValues_MainButton1:Hide();
+	end
+end
+
+function ActiveTankValues:PLAYER_REGEN_DISABLED()
+	ActiveTankValues:Check_Visibility();
+end
+
+function ActiveTankValues:PLAYER_REGEN_ENABLED()
+	ActiveTankValues:Check_Visibility();
+end
+
+function ActiveTankValues:ACTIVE_TALENT_GROUP_CHANGED()
+	ActiveTankValues:Check_Visibility();
+end
+
+function ActiveTankValues:PLAYER_ENTERING_WORLD()
+	ActiveTankValues:Check_Visibility();
+	
+	if (ActiveTankValues_Settings.IsLocked) then
 		self:RegisterForDrag();
 	else
 		self:RegisterForDrag("LeftButton");
 	end
 end
 
-function HowMuchMitigation:Check_Visibility()
+function ActiveTankValues:Check_Visibility()
 	local inCombat = UnitAffectingCombat("player");
-	local unlocked = not HowMuchMitigation_Settings.IsLocked;
-	local app_spell = HowMuchMitigation:Appropriate_Spell()
+	local unlocked = not ActiveTankValues_Settings.IsLocked;
+	local app_spell = ActiveTankValues:Appropriate_Spell()
 	if (app_spell and (inCombat or unlocked)) then
-		HowMuchMitigation_Main:Show();
-		HowMuchMitigation_Main:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
+		ActiveTankValues_Main:Show();
+		ActiveTankValues_Main:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
 		local appropriateSpellTexture = GetSpellTexture(app_spell);
-		HowMuchMitigation_MainButton1:SetNormalTexture(appropriateSpellTexture);
+		ActiveTankValues_MainButton1:SetNormalTexture(appropriateSpellTexture);
 	else
-		HowMuchMitigation_Main:Hide();
-		if (HowMuchMitigation_Main:IsEventRegistered("COMBAT_LOG_EVENT_UNFILTERED")) then
-			HowMuchMitigation_Main:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
+		ActiveTankValues_Main:Hide();
+		if (ActiveTankValues_Main:IsEventRegistered("COMBAT_LOG_EVENT_UNFILTERED")) then
+			ActiveTankValues_Main:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
 		end
 	end
 end
 
-function HowMuchMitigation:Appropriate_Spell()
+function ActiveTankValues:Appropriate_Spell()
 	local class, classFileName = UnitClass("player");
 	local spellId = class_spell_table[classFileName];
 	if spellId then
@@ -133,19 +185,19 @@ function HowMuchMitigation:Appropriate_Spell()
 	end
 end
 
-function HowMuchMitigation:SlashCmd(message, editBox)
+function ActiveTankValues:SlashCmd(message, editBox)
 	local command, rest = message:match("^(%S*)%s*(.-)$");
 	-- Nothing right now =/
 	if (command == "lock") then
-		if ( HowMuchMitigation_Settings.IsLocked ) then
-			HowMuchMitigation_Main:RegisterForDrag("LeftButton");
+		if ( ActiveTankValues_Settings.IsLocked ) then
+			ActiveTankValues_Main:RegisterForDrag("LeftButton");
 			print("HMM: Frame unlocked.");
-			HowMuchMitigation_Settings.IsLocked = false;
+			ActiveTankValues_Settings.IsLocked = false;
 		else
-			HowMuchMitigation_Main:RegisterForDrag();
+			ActiveTankValues_Main:RegisterForDrag();
 			print("HMM: Frame locked.");
-			HowMuchMitigation_Settings.IsLocked = true;
+			ActiveTankValues_Settings.IsLocked = true;
 		end
-		HowMuchMitigation:Check_Visibility();
+		ActiveTankValues:Check_Visibility();
 	end
 end

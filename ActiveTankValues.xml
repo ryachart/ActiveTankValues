@@ -1,12 +1,12 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\FrameXML\UI.xsd">
-	<Font name="ActiveTankValues_Font" font="Fonts\FRIZQT__.TTF" outline="NORMAL" virtual="true">
+	<Font name="HowMuchMitigation_Font" font="Fonts\FRIZQT__.TTF" outline="NORMAL" virtual="true">
         <FontHeight>
             <AbsValue val="24"/>
         </FontHeight>
 		<Color r="1" g="1" b="1" a="1"/>
     </Font>
-	<Script file="ActiveTankValues.lua"/>
-	<Frame name="ActiveTankValues_Main" parent="UIParent" hidden="true" enableMouse="true" movable="true">
+	<Script file="HowMuchMitigation.lua"/>
+	<Frame name="HowMuchMitigation_Main" parent="UIParent" hidden="true" enableMouse="true" movable="true">
 		<Size>
 			<AbsDimension x="140" y="40"/>
 		</Size>
@@ -36,25 +36,21 @@
 				<Anchors>
 					<Anchor point="RIGHT"/>
 				</Anchors>
-				<Frames>
-					<Cooldown name="$parentCooldown" inherits="CooldownFrameTemplate">
-						<Size x="36" y="36"/>
-						<Anchors>
-							<Anchor point="CENTER">
-								<Offset>
-									<AbsDimension x="0" y="-1"/>
-								</Offset>
-							</Anchor>
-						</Anchors> 
-					</Cooldown>
-				</Frames>
 				<Attributes>
 					<Attribute name="type" value="spell"/>
 				</Attributes>
 			</Button>
+			<StatusBar name="$parentStatusBar" hidden="false" orientation="HORIZONTAL">
+				<Size>
+					<AbsDimension x="100" y="10"/>
+				</Size>
+				<Anchors>
+					<Anchor point="LEFT"/>
+				</Anchors>
+			</StatusBar>
 		</Frames>
 		<Scripts>
-			<OnLoad function="ActiveTankValues_OnLoad"/>
+			<OnLoad function="HowMuchMitigation_OnLoad"/>
 			<OnDragStart>self:StartMoving()</OnDragStart>
 			<OnDragStop>self:StopMovingOrSizing();</OnDragStop>
 		</Scripts>
