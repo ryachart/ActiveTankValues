@@ -1,0 +1,8 @@
+## Interface: 50300
+## Title: ActiveTankValues
+## Notes: Keeps track of Shield Barrier, Enraged Regeneration, and Word of Glory Values for Tanks
+## Version: 1.0
+## SavedVariablesPerCharacter:  ActiveTankValues_Settings
+
+ActiveTankValues.lua
+ActiveTankValues.xml
