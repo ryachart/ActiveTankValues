@@ -5,33 +5,40 @@ local class_spell_table = {
 			DRUID = "22842", --Frenzied Regeneration
 			PALADIN = "85673" --Word of Glory
 };
-			
+
 local mitigation_value_lookup = {
 			WARRIOR = function()
-				local ap = UnitAttackPower("player");
+				local apBase, apPosBuff, apNegBuff = UnitAttackPower("player")
 				local rage = min(60,UnitPower("player"));
 				local str, effectiveStr, posBuffStr, negBuffStr = UnitStat("player", 1) --1 is str
 				local sta, effectiveSta, posBuffSta, negBuffSta = UnitStat("player", 3) --3 is stamina
+				local totalAp = apBase+apPosBuff+apNegBuff;
 				if (rage < 20) then
 					return 0;
 				end
-				local barrier_value = max(2*(ap - effectiveStr*2), sta*2.5) * rage/60;
-				return math.floor(barrier_value);
+				
+				
+				local barrier_value = totalAp * 1.125;
+				local resolveValue = GetResolveValue()
+				return floor(barrier_value * resolveValue * (rage / 20));
 			end,
 			DRUID = function()
 				local form = GetShapeshiftFormID();
 				if (form ~= BEAR_FORM) then
 					return 0;
 				end
-				local ap = UnitAttackPower("player");
+				local apBase, apPosBuff, apNegBuff = UnitAttackPower("player")
 				local rage = min(60,UnitPower("player"));
 				local agi, effectiveAgi, posBuffAgi, negBuffAgi = UnitStat("player", 2) --2 is agi
 				local sta, effectiveSta, posBuffSta, negBuffSta = UnitStat("player", 3) --3 is stamina
-				if (rage == 0) then
+				local totalAp = apBase+apPosBuff+apNegBuff;
+				if (rage < 20) then
 					return 0;
 				end
-				local regen_value = max(2*(ap - effectiveAgi*2), sta*2.5) * rage/60;
-				return math.floor(regen_value);
+				
+				
+				local regen_value = floor(math.max(2 * (totalAp - 2 * agi), math.min(math.max(rage, 20), 60) / 60 * sta * 2.5))
+				return regen_value;
 			end,
 			PALADIN = function()
 				local holyPower = min(3,UnitPower("player", SPELL_POWER_HOLY_POWER));
@@ -49,6 +56,15 @@ local mitigation_value_lookup = {
 				return math.floor(bastionOfGloryModifier*holyPower*(baseHealing+(.49*sp)));
 			end
 };
+
+function GetResolveValue()
+	name, rank, icon, count, dispelType, duration, expires, caster, isStealable, shouldConsolidate, spellID, canApplyAura, isBossDebuff, value1, value2, value3 = UnitAura("player", "Resolve")
+	if value2 == nil or value2 == 0 then 
+		return 1 
+	end;
+	return (1 + value2/100)
+end
+
 
 function ActiveTankValues_OnLoad(self)
 	SLASH_ActiveTankValues1 = "/atv";
